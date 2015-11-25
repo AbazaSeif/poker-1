@@ -394,11 +394,90 @@ $(document).ready(function() {
     var doneAnimating = false;
     var game = new Game();
     var name = "", playernum, opponent;
+	var states = ["betting", "discard", "betting", "end"];
 
     function sortMD(a,b) {
         // this sorts the array using the second element    
         return ((a[1] < b[1]) ? -1 : ((a[1] > b[1]) ? 1 : 0));
     }
+	function Game() {
+        var deck = new Deck();
+        deck.initialize();
+        deck.shuffle();
+        var state = "notready";
+        var turn = 1;
+        var toggle = true;
+
+        this.setDeck = function(toSet) {
+            if(toSet instanceof Array) {
+                deck.setDeck(toSet);
+            } else {
+               console.log("Error: type mismatch.");
+            }
+        }
+
+        this.setup = function(name, playernum) {
+            playerhand.deal();
+            deckstr = serialize(deck.getDeck());
+            handstr = serialize(playerhand.getHand());
+            $.post("setup.php",
+                   {deck: deckstr, hand: handstr, name: name, playernum: playernum},
+                   function(data) {
+                        if(data == "success") {
+                            console.log("success!");
+                        } else {
+                            console.log(data);
+                        }
+                   });
+        }
+
+        this.setState = function(sSet) {
+            state = sSet;
+        }
+
+        this.getState = function() {
+            return state;
+        }
+		
+		this.nextState = function() {
+			
+		}
+		
+        this.getDeck = function() {
+            return deck.getDeck();
+        }
+
+        this.updateDeck = function(name) {
+            str = serialize(deck.getDeck());
+            deck.update(name,str);
+        }
+
+        this.checkTurn = function() {
+            return turn;
+        }
+
+        this.switchTurn = function() {
+            if(toggle) {
+                turn = 2;
+            } else {
+                turn = 1;
+            }
+			$.post("processturn.php",
+                       {type: 'switch', turn: turn, name: name},
+                       function(data) {
+					   console.log(data);
+						   if(turn == playernum)
+						   {
+								game.nextState();
+						   } else {
+								waiting();
+						   }
+                       }
+                );
+            toggle = !toggle;
+        }
+    }
+	
     function Deck() {
         var deck = new Array();
         var seedArray = new Array();
@@ -410,7 +489,10 @@ $(document).ready(function() {
         this.initialize = function() {
             if(deck.length < 1) {
                 for(var x = 4; x <= 55; x++) {
-                    deck.push(x/4);
+					if(x/4 <2 && x/4 >=1)
+						deck.push(x/4+13);
+					else
+						deck.push(x/4);
                 }
                 dupeDeck = deck;
             } else {
@@ -471,9 +553,10 @@ $(document).ready(function() {
         $("#name-wrapper").css("display","block");
         $("#name").text("Name:");
         $("#enter").text("Enter");
-        //$("ul").css("display","block");
-        //playerhand.show(0);
-    }	 function waiting() {		 var isTurn = setInterval(function() {		 						      $.post("checkturn.php",		 						      	     {name: name},		 						      	     function(data) {		 						      	         var obj = $.parseJSON(data);		 						      	     }		 						      	     );		 						  }, 2000);	 }
+    }	 function waiting() {		 var isTurn = setInterval(function() {		 						      $.post("checkturn.php",		 						      	     {name: name},		 						      	     function(data) {		 						      	         var obj = $.parseJSON(data);
+												 turn = obj.turn;
+												 if(turn != game.checkTurn())
+													game.switchTurn();		 						      	     }		 						      	     );		 						  }, 2000);	 }
     
     function Hand() {
         var hand = new Array();
@@ -534,7 +617,7 @@ $(document).ready(function() {
                         top = "-475";
                         break;
                     default:
-                        top = "3";/*"3";*/
+                        top = "3";
                 }
                 $("#card" + (i+1)).animate({top:top}, {duration: 1000, complete: function() {
                     playerhand.show(i+1);
@@ -555,7 +638,7 @@ $(document).ready(function() {
                 return cnum;
             } else {
                 switch(cnum) {
-                    case 1:
+                    case 14:
                         cnum = "A";
                         return cnum;
                     case 11:
@@ -592,11 +675,6 @@ $(document).ready(function() {
             return hand;
         }
         
-        /*this.setHand = function(inHand) {
-            if(inHand instanceof Array && inHand.length = 5) {
-                hand = inHand;
-            }
-        }*/
     }
     
     /*var deck = new Deck();
@@ -663,12 +741,13 @@ $(document).ready(function() {
                    {"name":name},
                    function(data) {
                        if(data == "waiting") {
+							playernum = 1;
                             $("#error").css({"top":"40%",
                                              "left":"44%",
                                              "color":"green"});
                             $("#error").text("Waiting for an opponent...");
                             $("#name-wrapper").css("display","none");
-                            game.setup(name);
+                            game.setup(name, playernum);
                             var checkOpponent = setInterval(function() {
                                 $.post("checkopponent.php",
                                        {name: name},
@@ -681,21 +760,21 @@ $(document).ready(function() {
                                                playerhand.show(0);
                                                $("#pot").text("Pot: 100");
                                                $("#money").text("Money: 4950");
-                                               playernum = 1;
                                            }
                                        });
                             }, 2000)
                             //playerhand.show(0);
                        } else if(data == "canstart") {
+						   playernum = 2;
                            $("#name-wrapper").css("display","none");
+						   game.setup(name, playernum);
                            $.post("getcards.php",
                                   {name: name},
                                   function(data) {
-                                      playernum = 2;
                                       var obj = $.parseJSON(data);
                                       deckArray = unserialize(obj.deck);
                                       opponent = obj.opponent;
-                                      game.setDeck(deckArray);									   game.setState("betting");
+                                      game.setDeck(deckArray);									  game.setState("betting");
                                       playerhand.deal();
                                       playerhand.show(0);
                                       $("#pot").text("Pot: 100");
@@ -737,67 +816,6 @@ $(document).ready(function() {
         } else {
             return 0;
         }
-    }
-    
-    function Game() {
-        var deck = new Deck();
-        deck.initialize();
-        deck.shuffle();
-        var state = "notready";
-        var turn = 1;
-        var toggle = true;
-        this.setDeck = function(toSet) {
-            if(toSet instanceof Array) {
-                deck.setDeck(toSet);
-            } else {
-               console.log("Error: type mismatch.");
-            }
-        }
-        this.setup = function(name) {
-            playerhand.deal();
-            deckstr = serialize(deck.getDeck());
-            handstr = serialize(playerhand.getHand());
-            $.post("setup.php",
-                   {deck: deckstr,hand: handstr,name: name},
-                   function(data) {
-                        if(data == "success") {
-                            console.log("success!");
-                        } else {
-                            console.log(data);
-                        }
-                   });
-        }
-        this.setState = function(sSet) {
-            state = sSet;
-        }
-        this.getState = function() {
-            return state;
-        }
-        
-        this.getDeck = function() {
-            return deck.getDeck();
-        }
-        this.updateDeck = function(name) {
-            str = serialize(deck.getDeck());
-            deck.update(name,str);
-        }
-        this.checkTurn = function() {
-            return turn;
-        }
-        this.switchTurn = function() {
-            if(toggle) {
-                turn = 2;
-                $.post("updateturn.php",
-                       {turn: turn},
-                       function(data) {
-                           waiting();
-                       }
-                );
-            } else {
-                turn = 1;
-            }
-            toggle = !toggle;
-        }
     }
     var playerhand = new Hand();
     $("#enter").click(function() {
@@ -807,7 +825,10 @@ $(document).ready(function() {
         if(event.which === 13) {
             nameSend();
         }
-    });	 $("#bet").click(function() {	 	 bet = prompt("How much do you want to bet?");	 	 if(bet != "") {	 	 	 $.post("processturn.php",	 	 	 		{type: 'bet', bet: bet, name: name, playernum: playernum},	 	 	 		function(data) {	 	 	 			 var obj = $.parseJSON(data);	 	 	 			 error = obj.error;	 	 	 			 okay = obj.okay;	 	 	 			 pot = obj.pot;	 	 	 			 money = obj.money;	 	 	 			 if(okay == 1) {	 	 	 			 	$("#pot").text("Pot: " + pot);	 	 	 			 	$("#money").text("Money: " + money);	 	 	 			 } else if(error != "") {	 	 	 			 	alert(error);	 	 	 			 }	 	 	 		}	 	 	 		);	 	 }	 });
+    });	 $("#bet").click(function() {	 	 bet = prompt("How much do you want to bet?");	 	 if(bet != "") {	 	 	 $.post("processturn.php",	 	 	 		{type: 'bet', bet: bet, name: name, playernum: playernum},	 	 	 		function(data) {
+						 console.log(data);	 	 	 			 var obj = $.parseJSON(data);
+						 console.log("here");	 	 	 			 error = obj.error;	 	 	 			 okay = obj.okay;	 	 	 			 pot = obj.pot;	 	 	 			 money = obj.money;	 	 	 			 if(okay == 1) {	 	 	 			 	$("#pot").text("Pot: " + pot);	 	 	 			 	$("#money").text("Money: " + money);
+							game.switchTurn();	 	 	 			 } else if(error != "") {	 	 	 			 	alert(error);	 	 	 			 }	 	 	 		}	 	 	 		);	 	 }	 });
 });
 </script>
 <html>

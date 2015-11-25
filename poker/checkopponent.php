@@ -1,11 +1,11 @@
 <?php
 
-$con = mysql_connect("localhost","root","root123");
+$con = mysql_connect("173.71.126.184:3306","alanrgan","penguins666");
 if (!$con)
   {
   die('Could not connect: ' . mysql_error());
 }
-mysql_select_db("alanrgan", $con);
+mysql_select_db("pokerdb", $con);
 
 $name = $_POST['name'];
 

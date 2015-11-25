@@ -1,17 +1,34 @@
 <?php
 
-$con = mysql_connect("localhost","root","root123");
+ini_set('display_errors', 1);
+
+$con = mysql_connect("173.71.126.184:3306","alanrgan","penguins666");
 if (!$con)
   {
   die('Could not connect: ' . mysql_error());
 }
-mysql_select_db("alanrgan", $con);
+mysql_select_db("pokerdb", $con);
 
 $deck = $_POST['deck'];
 $hand = $_POST['hand'];
 $name = $_POST['name'];
+$pnum = $_POST['playernum'];
 
-mysql_query("UPDATE game_table SET deck='$deck', player1hand='$hand', turn='1', player1_money='4950', pot='50', stage='betting' WHERE player1='$name'") or die(mysql_error());
+if($pnum == 1)
+{
+	$pmoneystring = "player1_money";
+	$phandstring = "player1hand";
+	$pstring = "player1";
+}
+else
+{
+	$pmoneystring = "player2_money";
+	$phandstring = "player2hand";
+	$pstring = "player2";
+}
+
+mysql_query("UPDATE game_table SET deck='$deck', $phandstring='$hand', turn='1',
+			$pmoneystring='4950', pot='50', stage='betting' WHERE $pstring='$name'") or die(mysql_error());
 if($name == "") {
     echo "hsdgs";
 } else {

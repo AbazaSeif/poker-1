@@ -2,12 +2,12 @@
 
 $name = $_POST['name'];
 
-$con = mysql_connect("localhost","root","root123");
+$con = mysql_connect("localhost","root","penguins666");
 if (!$con)
   {
   die('Could not connect: ' . mysql_error());
 }
-mysql_select_db("alanrgan", $con);
+mysql_select_db("pokerdb", $con);
 
 if($name != "") {
     $checkthere = "SELECT * FROM game_table WHERE player1='$name' OR player2='$name'";
