@@ -1,6 +1,6 @@
 <?php
 
-$con = mysql_connect("173.71.126.184:3306","alanrgan","penguins666");
+$con = mysql_connect("173.71.126.184:3306","root","password");
 if (!$con)
   {
   die('Could not connect: ' . mysql_error());
