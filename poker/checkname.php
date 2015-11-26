@@ -2,7 +2,7 @@
 
 $name = $_POST['name'];
 
-$con = mysql_connect("localhost","root","penguins666");
+$con = mysql_connect("localhost","root","password");
 if (!$con)
   {
   die('Could not connect: ' . mysql_error());
