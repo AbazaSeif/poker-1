@@ -1,7 +1,7 @@
 <?php
 ini_set('display_errors', 1);
 
-$con = new mysqli("173.71.126.184:3306","alanrgan","penguins666", "pokerdb");
+$con = new mysqli("localhost","root","password", "pokerdb");
 if ($con->connect_errno) {
     printf("Connect failed: %s\n", mysqli_connect_error());
     exit();
